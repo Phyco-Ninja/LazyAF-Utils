@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2020 by Phyco-Ninja, < https://github.com/Phyco-Ninja >.
+# Copyright (C) 2020-2021 by Phyco-Ninja, < https://github.com/Phyco-Ninja >.
 #
 # This file is part of < https://github.com/Phyco-Ninja/LazyAF-Utils > project,
 # and is released under the "GNU v3.0 License Agreement".
@@ -117,7 +117,10 @@ class MongoStorage(Storage):
 
     async def get_peer_by_id(self, peer_id: int) -> PeerLike:
         """ get peer from db via ids """
-        data = await self.col.find_one({'peerId': peer_id})
+        try:
+            data = await self.col.find_one({'peerId': int(peer_id)})
+        except ValueError:
+            data = None
         if not data:
             raise KeyError(f"ID not found: {peer_id}")
         return get_input_peer(

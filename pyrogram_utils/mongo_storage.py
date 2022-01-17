@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2020-2021 by Phyco-Ninja, < https://github.com/Phyco-Ninja >.
+# Copyright (C) 2020-2022 by Phyco-Ninja, < https://github.com/Phyco-Ninja >.
 #
 # This file is part of < https://github.com/Phyco-Ninja/LazyAF-Utils > project,
 # and is released under the "GNU v3.0 License Agreement".
@@ -118,7 +118,9 @@ class MongoStorage(Storage):
     async def get_peer_by_id(self, peer_id: int) -> PeerLike:
         """ get peer from db via ids """
         try:
-            data = await self.col.find_one({'peerId': int(peer_id)})
+            data = await self.col.find_one(
+                {'peerId': int(peer_id), 'fetchedBy': self.session_id}
+            )
         except ValueError:
             data = None
         if not data:
@@ -129,7 +131,9 @@ class MongoStorage(Storage):
 
     async def get_peer_by_phone_number(self, phone_number: str) -> PeerLike:
         """ get peer by phone number """
-        data = await self.col.find_one({'phoneNumber': phone_number})
+        data = await self.col.find_one(
+            {'phoneNumber': phone_number, 'fetchedBy': self.session_id}
+        )
         if not data:
             raise KeyError(f"Phone Number not found: {phone_number}")
         return get_input_peer(
@@ -138,7 +142,9 @@ class MongoStorage(Storage):
 
     async def get_peer_by_username(self, username: str) -> PeerLike:
         """ get peer by username """
-        data = await self.col.find_one({'peerUsername': username})
+        data = await self.col.find_one(
+            {'peerUsername': username, 'fetchedBy': self.session_id}
+        )
         if not data:
             raise KeyError(f"Username not found: {username}")
         if abs(time() - data["lastUpdated"]) > self.MAX_UTTL:
@@ -152,7 +158,7 @@ class MongoStorage(Storage):
         async with self.lock:
             for peer in peers:
                 await self.col.update_one(
-                    {"peerId": peer[0]},
+                    {"peerId": peer[0], "fetchedBy": self.session_id},
                     {"$set": {
                         'peerId': peer[0],
                         'accessHash': peer[1],
@@ -163,10 +169,10 @@ class MongoStorage(Storage):
                     }},
                     upsert=True
                 )
-                await asyncio.sleep(0.4)
 
     # :::::::::: [Deprecated Methods] ::::::::::
-    async def export_session_string(self):
+    @staticmethod
+    async def export_session_string():
         """ packs and exports string session """
         raise DeprecationWarning("This method was removed in MongoStorage.")
 
